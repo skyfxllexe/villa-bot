@@ -8,11 +8,13 @@ import os
 import secrets
 import string
 from datetime import datetime, timedelta
-from bot_owner.config import ADMIN_TELEGRAM_ID
+
 router = Router()
 
-ADMIN_ID = ADMIN_TELEGRAM_ID
+from dotenv import load_dotenv
 
+load_dotenv()
+ADMIN_ID = os.getenv("ADMIN_TELEGRAM_ID")
 def is_admin(message: Message) -> bool:
     return message.from_user.id == ADMIN_ID
 

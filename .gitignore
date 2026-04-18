@@ -1,0 +1,7 @@
+.env
+villas.db
+__pycache__/
+*.pyc
+venv/
+*.session
+photos/

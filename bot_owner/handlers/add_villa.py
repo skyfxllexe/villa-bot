@@ -9,8 +9,12 @@ import os
 
 
 router = Router()
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
 
 # ─── Состояния ────────────────────────────────────
 class AddVillaForm(StatesGroup):

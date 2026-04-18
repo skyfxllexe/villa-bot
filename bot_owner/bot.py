@@ -5,11 +5,14 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from bot_owner.config import TOKEN
+
 from bot_owner.handlers import start, add_villa, my_villas, admin
 from database.connection import init_db  
 
+from dotenv import load_dotenv
 
+load_dotenv()
+TOKEN = os.getenv("BOT_OWNER_TOKEN")
 
 async def main():
     # await init_db()
