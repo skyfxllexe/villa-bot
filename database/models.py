@@ -51,6 +51,7 @@ class Villa(Base):
     features      = Column(Text, nullable=True)   # JSON
     rules         = Column(Text, nullable=True)
     photos        = Column(Text, nullable=True)   # JSON file_ids
+    client_photos = Column(Text, nullable=True)         # ← новое! file_id второго бота
     is_active     = Column(Boolean, default=True)
     created_at    = Column(DateTime, default=datetime.utcnow)
 

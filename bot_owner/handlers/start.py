@@ -4,7 +4,9 @@ from aiogram.types import Message
 from bot_owner.keyboards.menus import main_menu
 from aiogram.types import Message, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
 
-
+from aiogram import Router, F
+from aiogram.filters import CommandStart
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
 from aiogram import Router
 from aiogram.filters import CommandStart
@@ -17,6 +19,7 @@ from database.models import InviteCode, Owner
 from datetime import datetime
 
 router = Router()
+MANAGER_USERNAME = "@discxnnectedexe"  # вставишь сам
 
 class AuthForm(StatesGroup):
     waiting_code = State()
@@ -107,6 +110,7 @@ async def show_owner_menu(message: Message):
             [KeyboardButton(text="🏠 Добавить виллу")],
             [KeyboardButton(text="📋 Мои виллы")],
             [KeyboardButton(text="📊 Статистика броней")],
+            [KeyboardButton(text="📞 Связаться с менеджером")],
         ],
         resize_keyboard=True
     )
@@ -118,3 +122,11 @@ async def show_owner_menu(message: Message):
         parse_mode="Markdown"
     )
 
+@router.message(F.text.in_(["📞 Связаться с менеджером", "🆘 Поддержка"]))
+async def support(message: Message):
+    await message.answer(
+        f"📞 *Связаться с менеджером*\n\n"
+        f"Напишите напрямую: {MANAGER_USERNAME}\n\n"
+        "Мы ответим в течение часа 🙌",
+        parse_mode="Markdown"
+    )

@@ -3,7 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from sqlalchemy import select
 from database.connection import AsyncSessionLocal
-from database.models import Owner, InviteCode
+from database.models import Owner, InviteCode, Villa
 import os
 import secrets
 import string
@@ -14,7 +14,7 @@ router = Router()
 from dotenv import load_dotenv
 
 load_dotenv()
-ADMIN_ID = os.getenv("ADMIN_TELEGRAM_ID")
+ADMIN_ID = int(os.getenv("ADMIN_TELEGRAM_ID"))
 def is_admin(message: Message) -> bool:
     return message.from_user.id == ADMIN_ID
 
@@ -22,6 +22,7 @@ def is_admin(message: Message) -> bool:
 @router.message(Command("owners"))
 async def list_owners(message: Message):
     if not is_admin(message):
+        print(message.from_user.id)
         return
 
     async with AsyncSessionLocal() as db:
@@ -41,7 +42,7 @@ async def list_owners(message: Message):
             f"🆔 `{o.telegram_id}`\n\n"
         )
 
-    await message.answer(text, parse_mode="Markdown")
+    await message.answer(text)
 
 # ─── Заблокировать ────────────────────────────────
 @router.message(Command("ban"))
@@ -173,3 +174,62 @@ async def remove_owner(message: Message):
         f"🗑 *{name}* (`{telegram_id}`) удалён из системы",
         parse_mode="Markdown"
     )
+
+# ─── Удалить виллу ────────────────────────────────
+@router.message(Command("rmvilla"))
+async def remove_villa(message: Message):
+    if not is_admin(message):
+        return
+
+    args = message.text.split()
+    if len(args) < 2:
+        await message.answer(
+            "Использование:\n`/rmvilla VILLA_ID`",
+            parse_mode="Markdown"
+        )
+        return
+
+    villa_id = int(args[1])
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Villa).where(Villa.id == villa_id)
+        )
+        villa = result.scalar_one_or_none()
+
+        if not villa:
+            await message.answer("❌ Вилла не найдена")
+            return
+
+        name = villa.name
+        await db.delete(villa)
+        await db.commit()
+
+    await message.answer(
+        f"🗑 Вилла *{name}* (`{villa_id}`) удалена",
+        parse_mode="Markdown"
+    )
+
+# ─── Список всех вилл ─────────────────────────────
+@router.message(Command("villas"))
+async def list_villas(message: Message):
+    if not is_admin(message):
+        return
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Villa))
+        villas = result.scalars().all()
+
+    if not villas:
+        await message.answer("Вилл пока нет")
+        return
+
+    text = "🏠 *Все виллы:*\n\n"
+    for v in villas:
+        status = "✅" if v.is_active else "❌"
+        text += (
+            f"{status} `{v.id}` — *{v.name}*\n"
+            f"📍 {v.location} • 💰 {v.price_idr:,.0f} IDR\n\n"
+        )
+
+    await message.answer(text, parse_mode="Markdown")

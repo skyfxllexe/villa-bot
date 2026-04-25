@@ -136,45 +136,53 @@ async def my_villas_callback(callback: CallbackQuery):
     await callback.answer()
 
 # ─── Управление виллой ────────────────────────────
-@router.callback_query(F.data.startswith("myvilla_"))
-async def villa_manage(callback: CallbackQuery):
-    villa_id = int(callback.data.split("_")[1])
+# @router.callback_query(F.data.startswith("myvilla_"))
+# async def villa_manage(callback: CallbackQuery, bot: Bot):
+#     villa_id = int(callback.data.split("_")[1])
 
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Villa).where(Villa.id == villa_id)
-        )
-        villa = result.scalar_one_or_none()
+#     async with AsyncSessionLocal() as db:
+#         result = await db.execute(
+#             select(Villa).where(Villa.id == villa_id)
+#         )
+#         villa = result.scalar_one_or_none()
 
-    if not villa:
-        await callback.answer("❌ Вилла не найдена")
-        return
+#     if not villa:
+#         await callback.answer("❌ Вилла не найдена")
+#         return
 
-    features = "\n".join([f"  • {f}" for f in json.loads(villa.features or "[]")])
-    status   = "✅ Опубликована" if villa.is_active else "❌ Скрыта"
+#     features = "\n".join([f"  • {f}" for f in json.loads(villa.features or "[]")])
+#     status   = "✅ Опубликована" if villa.is_active else "❌ Скрыта"
 
-    text = (
-        f"🏠 *{villa.name}*\n\n"
-        f"📍 {villa.location}\n"
-        f"💰 {villa.price_idr:,.0f} IDR/ночь\n"
-        f"👥 До {villa.guests} гостей\n"
-        f"🛏 {villa.bedrooms} спальни\n\n"
-        f"📝 {villa.description}\n\n"
-        f"✨ Удобства:\n{features}\n\n"
-        f"📋 Правила: {villa.rules}\n\n"
-        f"Статус: {status}"
-    )
+#     text = (
+#         f"🏠 *{villa.name}*\n\n"
+#         f"📍 {villa.location}\n"
+#         f"💰 {villa.price_idr:,.0f} IDR/ночь\n"
+#         f"👥 До {villa.guests} гостей\n"
+#         f"🛏 {villa.bedrooms} спальни\n\n"
+#         f"📝 {villa.description}\n\n"
+#         f"✨ Удобства:\n{features}\n\n"
+#         f"📋 Правила: {villa.rules}\n\n"
+#         f"Статус: {status}"
+#     )
+#     photos = json.loads(villa.photos or "[]")
+#     if photos:
+#         from aiogram.types import InputMediaPhoto
+#         media = [InputMediaPhoto(media=p) for p in photos]
+#         await bot.send_media_group(
+#             chat_id = callback.message.chat.id,
+#             media   = media
+#         )
 
-    await callback.message.edit_text(
-        text,
-        reply_markup=villa_manage_keyboard(villa_id, villa.is_active),
-        parse_mode="Markdown"
-    )
-    await callback.answer()
+#     await callback.message.edit_text(
+#         text,
+#         reply_markup=villa_manage_keyboard(villa_id, villa.is_active),
+#         parse_mode="Markdown"
+#     )
+#     await callback.answer()
 
 # ─── Включить/выключить виллу ─────────────────────
 @router.callback_query(F.data.startswith("toggle_"))
-async def toggle_villa(callback: CallbackQuery):
+async def toggle_villa(callback: CallbackQuery, bot: Bot):
     villa_id = int(callback.data.split("_")[1])
 
     async with AsyncSessionLocal() as db:
@@ -188,7 +196,7 @@ async def toggle_villa(callback: CallbackQuery):
 
     text = "✅ Вилла опубликована!" if status else "❌ Вилла скрыта!"
     await callback.answer(text)
-    await villa_manage(callback)
+    await villa_manage(callback, bot)
 
 # ─── Удалить виллу ────────────────────────────────
 @router.callback_query(F.data.startswith("delete_"))
@@ -217,6 +225,68 @@ async def confirm_delete(callback: CallbackQuery):
             await db.commit()
 
     await callback.message.edit_text("✅ Вилла удалена!")
+    await callback.answer()
+@router.callback_query(F.data.startswith("myvilla_"))
+async def villa_manage(callback: CallbackQuery, bot: Bot):
+    villa_id = int(callback.data.split("_")[1])
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Villa).where(Villa.id == villa_id)
+        )
+        villa = result.scalar_one_or_none()
+
+    if not villa:
+        await callback.answer("❌ Вилла не найдена")
+        return
+
+    features = "\n".join([f"  • {f}" for f in json.loads(villa.features or "[]")])
+    status   = "✅ Опубликована" if villa.is_active else "❌ Скрыта"
+    photos   = json.loads(villa.photos or "[]")
+
+    text = (
+        f"🏠 *{villa.name}*\n\n"
+        f"📍 {villa.location}\n"
+        f"💰 {villa.price_idr:,.0f} IDR/месяц\n"
+        f"👥 До {villa.guests} гостей\n"
+        f"🛏 {villa.bedrooms} спальни\n\n"
+        f"📝 {villa.description}\n\n"
+        f"✨ Удобства:\n{features}\n\n"
+        f"📋 Правила: {villa.rules}\n\n"
+        f"Статус: {status}"
+    )
+
+    if photos:
+        from aiogram.types import InputMediaPhoto
+        media = []
+        for i, p in enumerate(photos):
+            if i == len(photos) - 1:
+                # Последнее фото — с описанием
+                media.append(InputMediaPhoto(
+                    media      = p,
+                    caption    = text,
+                    parse_mode = "Markdown"
+                ))
+            else:
+                media.append(InputMediaPhoto(media=p))
+
+        await bot.send_media_group(
+            chat_id = callback.message.chat.id,
+            media   = media
+        )
+        # Кнопки отдельным сообщением
+        await callback.message.answer(
+            "⚙️ Управление:",
+            reply_markup=villa_manage_keyboard(villa_id, villa.is_active)
+        )
+    else:
+        # Нет фото — просто текст с кнопками
+        await callback.message.edit_text(
+            text,
+            reply_markup=villa_manage_keyboard(villa_id, villa.is_active),
+            parse_mode="Markdown"
+        )
+
     await callback.answer()
 
 # ══════════════════════════════════════════════════
